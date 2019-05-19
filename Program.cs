@@ -9,6 +9,7 @@ using SharpLearning.InputOutput.Csv;
 using SharpLearning.RandomForest;
 using Accord.MachineLearning.DecisionTrees;
 using Accord.Math.Optimization.Losses;
+using Accord.MachineLearning.DecisionTrees.Learning;
 
 namespace PokerHandClass
 {
@@ -19,6 +20,7 @@ namespace PokerHandClass
             DownloadTrainingAndTestingData();
             List<int[]> trainingData = ReadData("poker-hand-training-true.data");
             List<int[]> testingData = ReadData("poker-hand-testing.data");
+            DecisionTreeClassification(trainingData, testingData);
             RandomForestClassification(trainingData, testingData);
 
         }
@@ -66,7 +68,7 @@ namespace PokerHandClass
                 //int[] predicted = forest.Decide(inputData);
                 //int[] predicTest = forest.Decide(testinputData);
                 double er = new ZeroOneLoss(testoutputData).Loss(forest.Decide(testinputData));
-                Console.WriteLine("Apmokymo tikslumas: {0}", 1-er);
+                Console.WriteLine("Apmokymo tikslumas: {0}", 1 - er);
                 watch.Stop();
                 var elapsedMs = watch.ElapsedMilliseconds;
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
@@ -75,13 +77,67 @@ namespace PokerHandClass
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
         }
+        static void DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData)
+        {
+            int testingCount = testingData.Count / 10;
+            int trainingCount = testingData.Count - testingCount;
+
+            int indexTestingStart = testingData.Count - testingCount;
+            int indexTestingEnd = testingData.Count;
+            for (int i = 0; i < 10; i++)
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
+                List<int[]> a = GetTrainingFiles(testingData, indexTestingStart, indexTestingEnd);
+                List<int[]> b = GetTestingFiles(testingData, indexTestingStart, indexTestingEnd);
+                int[][] inputData = new int[a.Count][];
+                int[] outputData = new int[a.Count];
+                for (int ii = 0; ii < a.Count; ii++)
+                {
+                    inputData[ii] = new int[10];
+                    for (int j = 0; j < 10; j++)
+                    {
+                        inputData[ii][j] = a[ii][j];
+                    }
+                    outputData[ii] = a[ii][10];
+                }
+                int[][] testinputData = new int[b.Count][];
+                int[] testoutputData = new int[b.Count];
+                for (int ii = 0; ii < b.Count; ii++)
+                {
+                    testinputData[ii] = new int[10];
+                    for (int j = 0; j < 10; j++)
+                    {
+                        testinputData[ii][j] = b[ii][j];
+                    }
+                    testoutputData[ii] = b[ii][10];
+                }
+                ID3Learning teacher = new ID3Learning();
+                var tree = teacher.Learn(inputData, outputData);
+                Console.WriteLine("Medis sukurtas - ismokta");
+                //int[] predicted = forest.Decide(inputData);
+                //int[] predicTest = forest.Decide(testinputData);
+                double error = new ZeroOneLoss(testoutputData).Loss(tree.Decide(testinputData));
+                Console.WriteLine("Apmokymo tikslumas: {0}", 1 - error);
+                int[] predicted = tree.Decide(inputData);
+                watch.Stop();
+                var elapsedMs = watch.ElapsedMilliseconds;
+                Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
+                indexTestingEnd = indexTestingStart;
+                indexTestingStart -= testingCount;
+                Console.WriteLine("------------------------------------------------------------------------------");
+            }
+        }
+
+
+
         static List<int[]> ReadData(string file)
         {
             List<int[]> temp = new List<int[]>();
             using (StreamReader r = new StreamReader(file))
             {
                 string line;
-                while(null != (line = r.ReadLine()))
+                while (null != (line = r.ReadLine()))
                 {
                     string[] val = line.Split(',');
                     int[] arr = new int[11];
