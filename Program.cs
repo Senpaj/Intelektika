@@ -20,45 +20,29 @@ namespace PokerHandClass
             DownloadTrainingAndTestingData();
             List<int[]> trainingData = ReadData("poker-hand-training-true.data");
             List<int[]> testingData = ReadData("poker-hand-testing.data");
-            DecisionTreeClassification(trainingData, testingData);
-            RandomForestClassification(trainingData, testingData);
+            double[] metoduTikslumai = new Double[2];
+            metoduTikslumai[0] = RandomForestClassification(trainingData, testingData);
+            metoduTikslumai[1] = DecisionTreeClassification(trainingData, testingData);
+            metoduTikslumai[2] = 0.0; // Tado metodas
 
         }
-        static void RandomForestClassification(List<int[]> trainingData, List<int[]> testingData)
+        static double RandomForestClassification(List<int[]> trainingData, List<int[]> testingData)
         {
             int testingCount = testingData.Count / 10;
             int trainingCount = testingData.Count - testingCount;
-
+            double errorAverage = 0;
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
+            Console.WriteLine("Random Forest Classification");
             for (int i = 0; i < 10; i++)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
-                List<int[]> a = GetTrainingFiles(testingData, indexTestingStart, indexTestingEnd);
-                List<int[]> b = GetTestingFiles(testingData, indexTestingStart, indexTestingEnd);
-                int[][] inputData = new int[a.Count][];
-                int[] outputData = new int[a.Count];
-                for (int ii = 0; ii < a.Count; ii++)
-                {
-                    inputData[ii] = new int[10];
-                    for (int j = 0; j < 10; j++)
-                    {
-                        inputData[ii][j] = a[ii][j];
-                    }
-                    outputData[ii] = a[ii][10];
-                }
-                int[][] testinputData = new int[b.Count][];
-                int[] testoutputData = new int[b.Count];
-                for (int ii = 0; ii < b.Count; ii++)
-                {
-                    testinputData[ii] = new int[10];
-                    for (int j = 0; j < 10; j++)
-                    {
-                        testinputData[ii][j] = b[ii][j];
-                    }
-                    testoutputData[ii] = b[ii][10];
-                }
+                int[][] inputData, testinputData;
+                int[] outputData, testoutputData;
+
+                PrepareInputOutput(out inputData, out outputData, out testinputData, out testoutputData, trainingData, testingData, indexTestingStart, indexTestingEnd);
+
                 var teacher = new RandomForestLearning()
                 {
                     NumberOfTrees = 100,
@@ -74,44 +58,28 @@ namespace PokerHandClass
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
                 indexTestingEnd = indexTestingStart;
                 indexTestingStart -= testingCount;
+                errorAverage += er;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
+            return 1 - (errorAverage / 10);
         }
-        static void DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData)
+        static double DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData)
         {
             int testingCount = testingData.Count / 10;
             int trainingCount = testingData.Count - testingCount;
-
+            double errorAverage = 0;
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
+            Console.WriteLine("Decision Tree Classification");
             for (int i = 0; i < 10; i++)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
-                List<int[]> a = GetTrainingFiles(testingData, indexTestingStart, indexTestingEnd);
-                List<int[]> b = GetTestingFiles(testingData, indexTestingStart, indexTestingEnd);
-                int[][] inputData = new int[a.Count][];
-                int[] outputData = new int[a.Count];
-                for (int ii = 0; ii < a.Count; ii++)
-                {
-                    inputData[ii] = new int[10];
-                    for (int j = 0; j < 10; j++)
-                    {
-                        inputData[ii][j] = a[ii][j];
-                    }
-                    outputData[ii] = a[ii][10];
-                }
-                int[][] testinputData = new int[b.Count][];
-                int[] testoutputData = new int[b.Count];
-                for (int ii = 0; ii < b.Count; ii++)
-                {
-                    testinputData[ii] = new int[10];
-                    for (int j = 0; j < 10; j++)
-                    {
-                        testinputData[ii][j] = b[ii][j];
-                    }
-                    testoutputData[ii] = b[ii][10];
-                }
+                int[][] inputData, testinputData;
+                int[] outputData, testoutputData;
+
+                PrepareInputOutput(out inputData, out outputData, out testinputData, out testoutputData, trainingData, testingData, indexTestingStart, indexTestingEnd);
+
                 ID3Learning teacher = new ID3Learning();
                 var tree = teacher.Learn(inputData, outputData);
                 Console.WriteLine("Medis sukurtas - ismokta");
@@ -125,12 +93,38 @@ namespace PokerHandClass
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
                 indexTestingEnd = indexTestingStart;
                 indexTestingStart -= testingCount;
+                errorAverage += error;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
+            return 1 - (errorAverage / 10);
         }
-
-
-
+        static void PrepareInputOutput(out int[][] inputData, out int[] outputData, out int[][] testinputData, out int[] testoutputData, List<int[]> trainingData, List<int[]> testingData, int indexTestingStart, int indexTestingEnd)
+        {
+            List<int[]> a = GetTrainingFiles(testingData, indexTestingStart, indexTestingEnd);
+            List<int[]> b = GetTestingFiles(testingData, indexTestingStart, indexTestingEnd);
+            inputData = new int[a.Count][];
+            outputData = new int[a.Count];
+            for (int ii = 0; ii < a.Count; ii++)
+            {
+                inputData[ii] = new int[10];
+                for (int j = 0; j < 10; j++)
+                {
+                    inputData[ii][j] = a[ii][j];
+                }
+                outputData[ii] = a[ii][10];
+            }
+            testinputData = new int[b.Count][];
+            testoutputData = new int[b.Count];
+            for (int ii = 0; ii < b.Count; ii++)
+            {
+                testinputData[ii] = new int[10];
+                for (int j = 0; j < 10; j++)
+                {
+                    testinputData[ii][j] = b[ii][j];
+                }
+                testoutputData[ii] = b[ii][10];
+            }
+        }
         static List<int[]> ReadData(string file)
         {
             List<int[]> temp = new List<int[]>();
@@ -148,7 +142,6 @@ namespace PokerHandClass
                     temp.Add(arr);
                 }
             }
-            Console.WriteLine(temp.Count);
             return temp;
         }
         static void DownloadTrainingAndTestingData()
