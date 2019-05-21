@@ -19,7 +19,7 @@ namespace PokerHandClass
         static void Main(string[] args)
         {
             Dirbam();
-            
+
         }
         static void Dirbam()
         {
@@ -30,12 +30,13 @@ namespace PokerHandClass
 
 
             double[] prob = new double[3];
-            RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
-            Console.WriteLine(ranForest.Decide(ss));
+           RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
+           Console.WriteLine(ranForest.Decide(ss));
 
-            double Tomo = DecisionTreeClassification(trainingData, testingData);
+            DecisionTree decisionTree = DecisionTreeClassification(trainingData, testingData, out prob[1]);
+            Console.WriteLine(decisionTree.Decide(ss));
             double Tado = 0.0; // Tado metodas
-
+            Console.ReadKey();
         }
         static RandomForest RandomForestClassification(List<int[]> trainingData, List<int[]> testingData, out double prob)
         {
@@ -49,7 +50,7 @@ namespace PokerHandClass
             for (int i = 0; i < iterations; i++)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
-                Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
+                Console.WriteLine("Testing from: {0} to {1}", indexTestingStart, indexTestingEnd);
                 int[][] inputData, testinputData;
                 int[] outputData, testoutputData;
 
@@ -76,7 +77,7 @@ namespace PokerHandClass
             prob = 1 - (errorAverage / iterations);
             return bestforest;
         }
-        static double DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData)
+        static DecisionTree DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData, out double prob)
         {
             int testingCount = testingData.Count / 10;
             int trainingCount = testingData.Count - testingCount;
@@ -84,32 +85,32 @@ namespace PokerHandClass
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
             Console.WriteLine("Decision Tree Classification");
+            DecisionTree bestDecision = null;
             for (int i = 0; i < iterations; i++)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
-                Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
+                Console.WriteLine("Testing from: {0} to {1}", indexTestingStart, indexTestingEnd);
                 int[][] inputData, testinputData;
                 int[] outputData, testoutputData;
 
                 PrepareInputOutput(out inputData, out outputData, out testinputData, out testoutputData, trainingData, testingData, indexTestingStart, indexTestingEnd);
 
                 ID3Learning teacher = new ID3Learning();
-                var tree = teacher.Learn(inputData, outputData);
+                var decision = teacher.Learn(inputData, outputData);
                 Console.WriteLine("Medis sukurtas - ismokta");
-                //int[] predicted = forest.Decide(inputData);
-                //int[] predicTest = forest.Decide(testinputData);
-                double error = new ZeroOneLoss(testoutputData).Loss(tree.Decide(testinputData));
+                double error = new ZeroOneLoss(testoutputData).Loss(decision.Decide(testinputData));
                 Console.WriteLine("Apmokymo tikslumas: {0}", 1 - error);
-                int[] predicted = tree.Decide(inputData);
                 watch.Stop();
                 var elapsedMs = watch.ElapsedMilliseconds;
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
                 indexTestingEnd = indexTestingStart;
                 indexTestingStart -= testingCount;
                 errorAverage += error;
+                bestDecision = decision;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
-            return 1 - (errorAverage / iterations);
+            prob = 1 - (errorAverage / iterations);
+            return bestDecision;
         }
         static void PrepareInputOutput(out int[][] inputData, out int[] outputData, out int[][] testinputData, out int[] testoutputData, List<int[]> trainingData, List<int[]> testingData, int indexTestingStart, int indexTestingEnd)
         {
