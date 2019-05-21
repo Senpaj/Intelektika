@@ -15,12 +15,13 @@ namespace PokerHandClass
 {
     class Program
     {
+        public static int iterations = 1;
         static void Main(string[] args)
         {
             DownloadTrainingAndTestingData();
             List<int[]> trainingData = ReadData("poker-hand-training-true.data");
             List<int[]> testingData = ReadData("poker-hand-testing.data");
-            double[] metoduTikslumai = new Double[2];
+            double[] metoduTikslumai = new Double[3];
             metoduTikslumai[0] = RandomForestClassification(trainingData, testingData);
             metoduTikslumai[1] = DecisionTreeClassification(trainingData, testingData);
             metoduTikslumai[2] = 0.0; // Tado metodas
@@ -34,7 +35,7 @@ namespace PokerHandClass
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
             Console.WriteLine("Random Forest Classification");
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < iterations; i++)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
@@ -45,7 +46,7 @@ namespace PokerHandClass
 
                 var teacher = new RandomForestLearning()
                 {
-                    NumberOfTrees = 100,
+                    NumberOfTrees = 5,
                 };
                 var forest = teacher.Learn(inputData, outputData);
                 Console.WriteLine("Medis sukurtas - ismokta");
@@ -61,7 +62,7 @@ namespace PokerHandClass
                 errorAverage += er;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
-            return 1 - (errorAverage / 10);
+            return 1 - (errorAverage / iterations);
         }
         static double DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData)
         {
@@ -71,7 +72,7 @@ namespace PokerHandClass
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
             Console.WriteLine("Decision Tree Classification");
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < iterations; i++)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
@@ -96,7 +97,7 @@ namespace PokerHandClass
                 errorAverage += error;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
-            return 1 - (errorAverage / 10);
+            return 1 - (errorAverage / iterations);
         }
         static void PrepareInputOutput(out int[][] inputData, out int[] outputData, out int[][] testinputData, out int[] testoutputData, List<int[]> trainingData, List<int[]> testingData, int indexTestingStart, int indexTestingEnd)
         {
