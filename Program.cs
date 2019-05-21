@@ -18,16 +18,26 @@ namespace PokerHandClass
         public static int iterations = 1;
         static void Main(string[] args)
         {
+            Dirbam();
+            
+        }
+        static void Dirbam()
+        {
             DownloadTrainingAndTestingData();
             List<int[]> trainingData = ReadData("poker-hand-training-true.data");
             List<int[]> testingData = ReadData("poker-hand-testing.data");
-            double[] metoduTikslumai = new Double[3];
-            metoduTikslumai[0] = RandomForestClassification(trainingData, testingData);
-            metoduTikslumai[1] = DecisionTreeClassification(trainingData, testingData);
-            metoduTikslumai[2] = 0.0; // Tado metodas
+            double[] ss = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 }; // Cia testavimui, reikes is consoles paimt input ir tada prognozuoja geriausias metodas is musu triju.
+
+
+            double[] prob = new double[3];
+            RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
+            Console.WriteLine(ranForest.Decide(ss));
+
+            double Tomo = DecisionTreeClassification(trainingData, testingData);
+            double Tado = 0.0; // Tado metodas
 
         }
-        static double RandomForestClassification(List<int[]> trainingData, List<int[]> testingData)
+        static RandomForest RandomForestClassification(List<int[]> trainingData, List<int[]> testingData, out double prob)
         {
             int testingCount = testingData.Count / 10;
             int trainingCount = testingData.Count - testingCount;
@@ -35,6 +45,7 @@ namespace PokerHandClass
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
             Console.WriteLine("Random Forest Classification");
+            RandomForest bestforest = null;
             for (int i = 0; i < iterations; i++)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -43,12 +54,11 @@ namespace PokerHandClass
                 int[] outputData, testoutputData;
 
                 PrepareInputOutput(out inputData, out outputData, out testinputData, out testoutputData, trainingData, testingData, indexTestingStart, indexTestingEnd);
-
-                var teacher = new RandomForestLearning()
+                var RanForest = new RandomForestLearning()
                 {
                     NumberOfTrees = 5,
                 };
-                var forest = teacher.Learn(inputData, outputData);
+                var forest = RanForest.Learn(inputData, outputData);
                 Console.WriteLine("Medis sukurtas - ismokta");
                 //int[] predicted = forest.Decide(inputData);
                 //int[] predicTest = forest.Decide(testinputData);
@@ -60,9 +70,11 @@ namespace PokerHandClass
                 indexTestingEnd = indexTestingStart;
                 indexTestingStart -= testingCount;
                 errorAverage += er;
+                bestforest = forest;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
-            return 1 - (errorAverage / iterations);
+            prob = 1 - (errorAverage / iterations);
+            return bestforest;
         }
         static double DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData)
         {
