@@ -10,6 +10,8 @@ using SharpLearning.RandomForest;
 using Accord.MachineLearning.DecisionTrees;
 using Accord.Math.Optimization.Losses;
 using Accord.MachineLearning.DecisionTrees.Learning;
+using Accord.MachineLearning;
+using Accord.Statistics.Analysis;
 
 namespace PokerHandClass
 {
@@ -21,9 +23,9 @@ namespace PokerHandClass
             List<int[]> trainingData = ReadData("poker-hand-training-true.data");
             List<int[]> testingData = ReadData("poker-hand-testing.data");
             double[] metoduTikslumai = new Double[2];
-            metoduTikslumai[0] = RandomForestClassification(trainingData, testingData);
-            metoduTikslumai[1] = DecisionTreeClassification(trainingData, testingData);
-            metoduTikslumai[2] = 0.0; // Tado metodas
+           // metoduTikslumai[0] = RandomForestClassification(trainingData, testingData);
+            //metoduTikslumai[1] = DecisionTreeClassification(trainingData, testingData);
+            metoduTikslumai[2] = kNearestNeighbours(trainingData, testingData);
 
         }
         static double RandomForestClassification(List<int[]> trainingData, List<int[]> testingData)
@@ -97,6 +99,47 @@ namespace PokerHandClass
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
             return 1 - (errorAverage / 10);
+        }
+        static double kNearestNeighbours(List<int[]> trainingData, List<int[]> testingData)
+        {
+            int testingCount = testingData.Count / 10;
+            int trainingCount = testingData.Count - testingCount;
+            double errorAverage = 0;
+            int indexTestingStart = testingData.Count - testingCount;
+            int indexTestingEnd = testingData.Count;
+            Console.WriteLine("k nearest neighbours Classification");
+            for (int i = 0; i < 10; i++)
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
+                int[][] inputData, testinputData;
+                int[] outputData, testoutputData;
+                PrepareInputOutput(out inputData, out outputData, out testinputData, out testoutputData, trainingData, testingData, indexTestingStart, indexTestingEnd);
+                double[][] input = new double[inputData.GetLength(0)][] = 0;
+                double a = 0;
+                for (int j = 0; j < inputData.GetLength(0); j++)
+                {
+                    for(int k = 0; k < 11; k++)
+                    {
+                        Console.WriteLine(inputData[j][k]);
+                        a = Convert.ToDouble(inputData[j][k]);
+                        input[j][k] = a;
+                    }
+                }
+                var knn = new KNearestNeighbors(k: 4);
+                knn.Learn(input, outputData);
+                var cm = GeneralConfusionMatrix.Estimate(knn, input, outputData);
+                // We can use it to estimate measures such as 
+                double error = cm.Error;  // should be 0
+                double acc = cm.Accuracy; // should be 1
+                double kappa = cm.Kappa;  // should be 1
+                watch.Stop();
+                var elapsedMs = watch.ElapsedMilliseconds;
+                Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
+                indexTestingEnd = indexTestingStart;
+                indexTestingStart -= testingCount;
+            }
+            return 0;
         }
         static void PrepareInputOutput(out int[][] inputData, out int[] outputData, out int[][] testinputData, out int[] testoutputData, List<int[]> trainingData, List<int[]> testingData, int indexTestingStart, int indexTestingEnd)
         {
