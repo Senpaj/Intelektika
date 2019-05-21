@@ -28,7 +28,7 @@ namespace PokerHandClass
             //metoduTikslumai[1] = DecisionTreeClassification(trainingData, testingData);
             metoduTikslumai[2] = kNearestNeighbours(trainingData, testingData);
 
-
+           // double[] ss = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 };
             //double[] prob = new double[3];
             //RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
             //Console.WriteLine(ranForest.Decide(ss));
