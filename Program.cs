@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using SharpLearning.InputOutput.Csv;
-using SharpLearning.RandomForest;
 using Accord.MachineLearning.DecisionTrees;
 using Accord.Math.Optimization.Losses;
 using Accord.MachineLearning.DecisionTrees.Learning;
@@ -30,8 +25,8 @@ namespace PokerHandClass
 
 
             double[] prob = new double[3];
-           RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
-           Console.WriteLine(ranForest.Decide(ss));
+            RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
+            Console.WriteLine(ranForest.Decide(ss));
 
             DecisionTree decisionTree = DecisionTreeClassification(trainingData, testingData, out prob[1]);
             Console.WriteLine(decisionTree.Decide(ss));
@@ -45,6 +40,7 @@ namespace PokerHandClass
             double errorAverage = 0;
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
+            double prec = 0;
             Console.WriteLine("Random Forest Classification");
             RandomForest bestforest = null;
             for (int i = 0; i < iterations; i++)
@@ -65,13 +61,17 @@ namespace PokerHandClass
                 //int[] predicTest = forest.Decide(testinputData);
                 double er = new ZeroOneLoss(testoutputData).Loss(forest.Decide(testinputData));
                 Console.WriteLine("Apmokymo tikslumas: {0}", 1 - er);
+                if(1 - er > prec)
+                {
+                    prec = 1 - er;
+                    bestforest = forest;
+                }
                 watch.Stop();
                 var elapsedMs = watch.ElapsedMilliseconds;
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
                 indexTestingEnd = indexTestingStart;
                 indexTestingStart -= testingCount;
                 errorAverage += er;
-                bestforest = forest;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
             prob = 1 - (errorAverage / iterations);
@@ -84,6 +84,7 @@ namespace PokerHandClass
             double errorAverage = 0;
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
+            double prec = 0;
             Console.WriteLine("Decision Tree Classification");
             DecisionTree bestDecision = null;
             for (int i = 0; i < iterations; i++)
@@ -100,6 +101,11 @@ namespace PokerHandClass
                 Console.WriteLine("Medis sukurtas - ismokta");
                 double error = new ZeroOneLoss(testoutputData).Loss(decision.Decide(testinputData));
                 Console.WriteLine("Apmokymo tikslumas: {0}", 1 - error);
+                if (1 - error > prec)
+                {
+                    prec = 1 - error;
+                    bestDecision = decision;
+                }
                 watch.Stop();
                 var elapsedMs = watch.ElapsedMilliseconds;
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
