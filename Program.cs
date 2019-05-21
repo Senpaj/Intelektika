@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using SharpLearning.InputOutput.Csv;
-using SharpLearning.RandomForest;
 using Accord.MachineLearning.DecisionTrees;
 using Accord.Math.Optimization.Losses;
 using Accord.MachineLearning.DecisionTrees.Learning;
@@ -17,7 +12,13 @@ namespace PokerHandClass
 {
     class Program
     {
+        public static int iterations = 1;
         static void Main(string[] args)
+        {
+            Dirbam();
+
+        }
+        static void Dirbam()
         {
             DownloadTrainingAndTestingData();
             List<int[]> trainingData = ReadData("poker-hand-training-true.data");
@@ -27,34 +28,49 @@ namespace PokerHandClass
             //metoduTikslumai[1] = DecisionTreeClassification(trainingData, testingData);
             metoduTikslumai[2] = kNearestNeighbours(trainingData, testingData);
 
+
+            double[] prob = new double[3];
+            RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
+            Console.WriteLine(ranForest.Decide(ss));
+
+            DecisionTree decisionTree = DecisionTreeClassification(trainingData, testingData, out prob[1]);
+            Console.WriteLine(decisionTree.Decide(ss));
+            double Tado = 0.0; // Tado metodas
+            Console.ReadKey();
         }
-        static double RandomForestClassification(List<int[]> trainingData, List<int[]> testingData)
+        static RandomForest RandomForestClassification(List<int[]> trainingData, List<int[]> testingData, out double prob)
         {
             int testingCount = testingData.Count / 10;
             int trainingCount = testingData.Count - testingCount;
             double errorAverage = 0;
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
+            double prec = 0;
             Console.WriteLine("Random Forest Classification");
-            for (int i = 0; i < 10; i++)
+            RandomForest bestforest = null;
+            for (int i = 0; i < iterations; i++)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
-                Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
+                Console.WriteLine("Testing from: {0} to {1}", indexTestingStart, indexTestingEnd);
                 int[][] inputData, testinputData;
                 int[] outputData, testoutputData;
 
                 PrepareInputOutput(out inputData, out outputData, out testinputData, out testoutputData, trainingData, testingData, indexTestingStart, indexTestingEnd);
-
-                var teacher = new RandomForestLearning()
+                var RanForest = new RandomForestLearning()
                 {
-                    NumberOfTrees = 100,
+                    NumberOfTrees = 5,
                 };
-                var forest = teacher.Learn(inputData, outputData);
+                var forest = RanForest.Learn(inputData, outputData);
                 Console.WriteLine("Medis sukurtas - ismokta");
                 //int[] predicted = forest.Decide(inputData);
                 //int[] predicTest = forest.Decide(testinputData);
                 double er = new ZeroOneLoss(testoutputData).Loss(forest.Decide(testinputData));
                 Console.WriteLine("Apmokymo tikslumas: {0}", 1 - er);
+                if(1 - er > prec)
+                {
+                    prec = 1 - er;
+                    bestforest = forest;
+                }
                 watch.Stop();
                 var elapsedMs = watch.ElapsedMilliseconds;
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
@@ -63,42 +79,49 @@ namespace PokerHandClass
                 errorAverage += er;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
-            return 1 - (errorAverage / 10);
+            prob = 1 - (errorAverage / iterations);
+            return bestforest;
         }
-        static double DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData)
+        static DecisionTree DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData, out double prob)
         {
             int testingCount = testingData.Count / 10;
             int trainingCount = testingData.Count - testingCount;
             double errorAverage = 0;
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
+            double prec = 0;
             Console.WriteLine("Decision Tree Classification");
-            for (int i = 0; i < 10; i++)
+            DecisionTree bestDecision = null;
+            for (int i = 0; i < iterations; i++)
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
-                Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
+                Console.WriteLine("Testing from: {0} to {1}", indexTestingStart, indexTestingEnd);
                 int[][] inputData, testinputData;
                 int[] outputData, testoutputData;
 
                 PrepareInputOutput(out inputData, out outputData, out testinputData, out testoutputData, trainingData, testingData, indexTestingStart, indexTestingEnd);
 
                 ID3Learning teacher = new ID3Learning();
-                var tree = teacher.Learn(inputData, outputData);
+                var decision = teacher.Learn(inputData, outputData);
                 Console.WriteLine("Medis sukurtas - ismokta");
-                //int[] predicted = forest.Decide(inputData);
-                //int[] predicTest = forest.Decide(testinputData);
-                double error = new ZeroOneLoss(testoutputData).Loss(tree.Decide(testinputData));
+                double error = new ZeroOneLoss(testoutputData).Loss(decision.Decide(testinputData));
                 Console.WriteLine("Apmokymo tikslumas: {0}", 1 - error);
-                int[] predicted = tree.Decide(inputData);
+                if (1 - error > prec)
+                {
+                    prec = 1 - error;
+                    bestDecision = decision;
+                }
                 watch.Stop();
                 var elapsedMs = watch.ElapsedMilliseconds;
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
                 indexTestingEnd = indexTestingStart;
                 indexTestingStart -= testingCount;
                 errorAverage += error;
+                bestDecision = decision;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
-            return 1 - (errorAverage / 10);
+            prob = 1 - (errorAverage / iterations);
+            return bestDecision;
         }
         static double kNearestNeighbours(List<int[]> trainingData, List<int[]> testingData)
         {
