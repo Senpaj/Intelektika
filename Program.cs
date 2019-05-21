@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using SharpLearning.InputOutput.Csv;
-using SharpLearning.RandomForest;
 using Accord.MachineLearning.DecisionTrees;
 using Accord.Math.Optimization.Losses;
 using Accord.MachineLearning.DecisionTrees.Learning;
+using Accord.MachineLearning;
+using Accord.Statistics.Analysis;
 
 namespace PokerHandClass
 {
@@ -26,12 +23,15 @@ namespace PokerHandClass
             DownloadTrainingAndTestingData();
             List<int[]> trainingData = ReadData("poker-hand-training-true.data");
             List<int[]> testingData = ReadData("poker-hand-testing.data");
-            double[] ss = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 }; // Cia testavimui, reikes is consoles paimt input ir tada prognozuoja geriausias metodas is musu triju.
+            double[] metoduTikslumai = new Double[2];
+           // metoduTikslumai[0] = RandomForestClassification(trainingData, testingData);
+            //metoduTikslumai[1] = DecisionTreeClassification(trainingData, testingData);
+            metoduTikslumai[2] = kNearestNeighbours(trainingData, testingData);
 
 
             double[] prob = new double[3];
-           RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
-           Console.WriteLine(ranForest.Decide(ss));
+            RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
+            Console.WriteLine(ranForest.Decide(ss));
 
             DecisionTree decisionTree = DecisionTreeClassification(trainingData, testingData, out prob[1]);
             Console.WriteLine(decisionTree.Decide(ss));
@@ -45,6 +45,7 @@ namespace PokerHandClass
             double errorAverage = 0;
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
+            double prec = 0;
             Console.WriteLine("Random Forest Classification");
             RandomForest bestforest = null;
             for (int i = 0; i < iterations; i++)
@@ -65,13 +66,17 @@ namespace PokerHandClass
                 //int[] predicTest = forest.Decide(testinputData);
                 double er = new ZeroOneLoss(testoutputData).Loss(forest.Decide(testinputData));
                 Console.WriteLine("Apmokymo tikslumas: {0}", 1 - er);
+                if(1 - er > prec)
+                {
+                    prec = 1 - er;
+                    bestforest = forest;
+                }
                 watch.Stop();
                 var elapsedMs = watch.ElapsedMilliseconds;
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
                 indexTestingEnd = indexTestingStart;
                 indexTestingStart -= testingCount;
                 errorAverage += er;
-                bestforest = forest;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
             prob = 1 - (errorAverage / iterations);
@@ -84,6 +89,7 @@ namespace PokerHandClass
             double errorAverage = 0;
             int indexTestingStart = testingData.Count - testingCount;
             int indexTestingEnd = testingData.Count;
+            double prec = 0;
             Console.WriteLine("Decision Tree Classification");
             DecisionTree bestDecision = null;
             for (int i = 0; i < iterations; i++)
@@ -100,6 +106,11 @@ namespace PokerHandClass
                 Console.WriteLine("Medis sukurtas - ismokta");
                 double error = new ZeroOneLoss(testoutputData).Loss(decision.Decide(testinputData));
                 Console.WriteLine("Apmokymo tikslumas: {0}", 1 - error);
+                if (1 - error > prec)
+                {
+                    prec = 1 - error;
+                    bestDecision = decision;
+                }
                 watch.Stop();
                 var elapsedMs = watch.ElapsedMilliseconds;
                 Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
@@ -111,6 +122,47 @@ namespace PokerHandClass
             }
             prob = 1 - (errorAverage / iterations);
             return bestDecision;
+        }
+        static double kNearestNeighbours(List<int[]> trainingData, List<int[]> testingData)
+        {
+            int testingCount = testingData.Count / 10;
+            int trainingCount = testingData.Count - testingCount;
+            double errorAverage = 0;
+            int indexTestingStart = testingData.Count - testingCount;
+            int indexTestingEnd = testingData.Count;
+            Console.WriteLine("k nearest neighbours Classification");
+            for (int i = 0; i < 10; i++)
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                Console.WriteLine("Testing nuo: {0} iki {1}", indexTestingStart, indexTestingEnd);
+                int[][] inputData, testinputData;
+                int[] outputData, testoutputData;
+                PrepareInputOutput(out inputData, out outputData, out testinputData, out testoutputData, trainingData, testingData, indexTestingStart, indexTestingEnd);
+                double[][] input = new double[inputData.GetLength(0)][] = 0;
+                double a = 0;
+                for (int j = 0; j < inputData.GetLength(0); j++)
+                {
+                    for(int k = 0; k < 11; k++)
+                    {
+                        Console.WriteLine(inputData[j][k]);
+                        a = Convert.ToDouble(inputData[j][k]);
+                        input[j][k] = a;
+                    }
+                }
+                var knn = new KNearestNeighbors(k: 4);
+                knn.Learn(input, outputData);
+                var cm = GeneralConfusionMatrix.Estimate(knn, input, outputData);
+                // We can use it to estimate measures such as 
+                double error = cm.Error;  // should be 0
+                double acc = cm.Accuracy; // should be 1
+                double kappa = cm.Kappa;  // should be 1
+                watch.Stop();
+                var elapsedMs = watch.ElapsedMilliseconds;
+                Console.WriteLine("Iteracija baigta per: {0}ms", elapsedMs);
+                indexTestingEnd = indexTestingStart;
+                indexTestingStart -= testingCount;
+            }
+            return 0;
         }
         static void PrepareInputOutput(out int[][] inputData, out int[] outputData, out int[][] testinputData, out int[] testoutputData, List<int[]> trainingData, List<int[]> testingData, int indexTestingStart, int indexTestingEnd)
         {
