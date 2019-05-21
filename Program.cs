@@ -29,14 +29,13 @@ namespace PokerHandClass
             metoduTikslumai[2] = kNearestNeighbours(trainingData, testingData);
 
 
-            double[] prob = new double[3];
-            RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
-            Console.WriteLine(ranForest.Decide(ss));
+            //double[] prob = new double[3];
+            //RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
+            //Console.WriteLine(ranForest.Decide(ss));
 
-            DecisionTree decisionTree = DecisionTreeClassification(trainingData, testingData, out prob[1]);
-            Console.WriteLine(decisionTree.Decide(ss));
-            double Tado = 0.0; // Tado metodas
-            Console.ReadKey();
+            //DecisionTree decisionTree = DecisionTreeClassification(trainingData, testingData, out prob[1]);
+            //Console.WriteLine(decisionTree.Decide(ss));
+            //Console.ReadKey();
         }
         static RandomForest RandomForestClassification(List<int[]> trainingData, List<int[]> testingData, out double prob)
         {
@@ -138,13 +137,13 @@ namespace PokerHandClass
                 int[][] inputData, testinputData;
                 int[] outputData, testoutputData;
                 PrepareInputOutput(out inputData, out outputData, out testinputData, out testoutputData, trainingData, testingData, indexTestingStart, indexTestingEnd);
-                double[][] input = new double[inputData.GetLength(0)][] = 0;
+                double[][] input = new double[inputData.GetLength(0)][];
                 double a = 0;
                 for (int j = 0; j < inputData.GetLength(0); j++)
                 {
-                    for(int k = 0; k < 11; k++)
+                    input[j] = new double[10];
+                    for(int k = 0; k < 10; k++)
                     {
-                        Console.WriteLine(inputData[j][k]);
                         a = Convert.ToDouble(inputData[j][k]);
                         input[j][k] = a;
                     }
