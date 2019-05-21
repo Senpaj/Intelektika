@@ -23,21 +23,45 @@ namespace PokerHandClass
             DownloadTrainingAndTestingData();
             List<int[]> trainingData = ReadData("poker-hand-training-true.data");
             List<int[]> testingData = ReadData("poker-hand-testing.data");
-            double[] metoduTikslumai = new Double[2];
-           // metoduTikslumai[0] = RandomForestClassification(trainingData, testingData);
-            //metoduTikslumai[1] = DecisionTreeClassification(trainingData, testingData);
-            metoduTikslumai[2] = kNearestNeighbours(trainingData, testingData);
+            //double Tado = kNearestNeighbours(trainingData, testingData);
 
-           // double[] ss = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 };
-            //double[] prob = new double[3];
-            //RandomForest ranForest = RandomForestClassification(trainingData, testingData, out prob[0]);
-            //Console.WriteLine(ranForest.Decide(ss));
+            double[] ss = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 };
+            double[] precision = new double[3];
+            RandomForest ranForest = RandomForestClassification(trainingData, testingData, out precision[0]);
+            DecisionTree decisionTree = DecisionTreeClassification(trainingData, testingData, out precision[1]);
 
-            //DecisionTree decisionTree = DecisionTreeClassification(trainingData, testingData, out prob[1]);
-            //Console.WriteLine(decisionTree.Decide(ss));
-            //Console.ReadKey();
+            BestClassificator(ranForest, decisionTree, precision);
+
+            Console.ReadKey();
         }
-        static RandomForest RandomForestClassification(List<int[]> trainingData, List<int[]> testingData, out double prob)
+        static void BestClassificator(RandomForest forest, DecisionTree tree, double[] precision)
+        {
+            if(precision[0] > precision[1])
+            {
+                Console.WriteLine("Geriausias parinktas klasifikavimo metodas: {0}", "Random Forest");
+                Console.Write("Iveskite penkiu kortu rinkini, skaicius atskirdamo tarpu: ");
+                string[] val = Console.ReadLine().Split(' ');
+                double[] hand = new double[10];
+                for (int i = 0; i < 10; i++)
+                {
+                    hand[i] = Convert.ToDouble(val[i]);
+                }
+                Console.WriteLine(forest.Decide(hand));
+            }
+            else
+            {
+                Console.WriteLine("Geriausias parinktas klasifikavimo metodas: %s", "Decision Tree");
+                Console.Write("Iveskite penkiu kortu rinkini, skaicius atskirdamo tarpu: ");
+                string[] val = Console.ReadLine().Split(' ');
+                double[] hand = new double[10];
+                for (int i = 0; i < 10; i++)
+                {
+                    hand[i] = Convert.ToDouble(val[i]);
+                }
+                Console.WriteLine(tree.Decide(hand));
+            }
+        }
+        static RandomForest RandomForestClassification(List<int[]> trainingData, List<int[]> testingData, out double precision)
         {
             int testingCount = testingData.Count / 10;
             int trainingCount = testingData.Count - testingCount;
@@ -78,10 +102,10 @@ namespace PokerHandClass
                 errorAverage += er;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
-            prob = 1 - (errorAverage / iterations);
+            precision = 1 - (errorAverage / iterations);
             return bestforest;
         }
-        static DecisionTree DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData, out double prob)
+        static DecisionTree DecisionTreeClassification(List<int[]> trainingData, List<int[]> testingData, out double precision)
         {
             int testingCount = testingData.Count / 10;
             int trainingCount = testingData.Count - testingCount;
@@ -119,7 +143,7 @@ namespace PokerHandClass
                 bestDecision = decision;
                 Console.WriteLine("------------------------------------------------------------------------------");
             }
-            prob = 1 - (errorAverage / iterations);
+            precision = 1 - (errorAverage / iterations);
             return bestDecision;
         }
         static double kNearestNeighbours(List<int[]> trainingData, List<int[]> testingData)
